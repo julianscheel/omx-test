@@ -1,0 +1,5 @@
+omx-test
+===========
+
+Some minimal omx test snippets for hunting bugs.
+Largely based on code from http://jan.newmarch.name/LinuxSound/Sampled/OpenMAX/
