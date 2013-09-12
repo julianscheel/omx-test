@@ -3,3 +3,13 @@ omx-test
 
 Some minimal omx test snippets for hunting bugs.
 Largely based on code from http://jan.newmarch.name/LinuxSound/Sampled/OpenMAX/
+
+Cross-Compiling
+===============
+
+For Cross-Compiling just set CC and SYSROOT variable to match your toolchains
+gcc and your target systemroot. Example:
+
+CC=/home/user/ct-ng/host/bin/arm-buildroot-linux-gnueabi-cc \
+SYSROOT=/home/user/buildroot/output/rootfs/staging/ \
+make all
