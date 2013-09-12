@@ -294,42 +294,6 @@ void disablePort(OMX_INDEXTYPE paramType) {
 	}
 }
 
-/* For the RPi name can be "hdmi" or "local" */
-void setOutputDevice(const char *name) {
-   int32_t success = -1;
-   OMX_CONFIG_BRCMAUDIODESTINATIONTYPE arDest;
-
-   if (name && strlen(name) < sizeof(arDest.sName)) {
-	   setHeader(&arDest, sizeof(OMX_CONFIG_BRCMAUDIODESTINATIONTYPE));
-	   strcpy((char *)arDest.sName, name);
-
-	   err = OMX_SetParameter(handle, OMX_IndexConfigBrcmAudioDestination, &arDest);
-	   if (err != OMX_ErrorNone) {
-		   fprintf(stderr, "Error on setting audio destination\n");
-		   exit(1);
-	   }
-   }
-}
-
-void setPCMMode(int startPortNumber) {
-	OMX_AUDIO_PARAM_PCMMODETYPE sPCMMode;
-
-	setHeader(&sPCMMode, sizeof(OMX_AUDIO_PARAM_PCMMODETYPE));
-	sPCMMode.nPortIndex = startPortNumber;
-	sPCMMode.nSamplingRate = 48000;
-	sPCMMode.nChannels;
-
-	err = OMX_SetParameter(handle, OMX_IndexParamAudioPcm, &sPCMMode);
-	if(err != OMX_ErrorNone) {
-		fprintf(stderr, "PCM mode unsupported\n");
-		return;
-	} else {
-		fprintf(stderr, "PCM mode supported\n");
-		fprintf(stderr, "PCM sampling rate %d\n", sPCMMode.nSamplingRate);
-		fprintf(stderr, "PCM nChannels %d\n", sPCMMode.nChannels);
-	}
-}
-
 int main(int argc, char** argv) {
 
 	OMX_PORT_PARAM_TYPE param;
