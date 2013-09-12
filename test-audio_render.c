@@ -83,8 +83,8 @@ void mutex_init() {
 		fprintf(stderr, "Can't init empty mutex\n");
 }
 
-static void display_help() {
-	fprintf(stderr, "Usage: render input_file");
+static void display_help(char **argv) {
+	fprintf(stderr, "Usage: %s <input-file>\n", argv[0]);
 }
 
 
@@ -299,7 +299,7 @@ int main(int argc, char** argv) {
 
 	fprintf(stderr, "Thread id is %p\n", pthread_self());
 	if(argc < 2){
-		display_help();
+		display_help(argv);
 		exit(1);
 	}
 
