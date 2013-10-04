@@ -1,7 +1,7 @@
 CC ?= cc
 
 INCLUDES = -I$(SYSROOT)/opt/vc/include/IL -I$(SYSROOT)/opt/vc/include -I$(SYSROOT)/opt/vc/include/interface/vcos/pthreads \
-		-I$(SYSROOT)/usr/include/IL -I$(SYSROOT)/usr/include/interface/vcos/pthreads
+		-I$(SYSROOT)/usr/include/IL -I$(SYSROOT)/usr/include/interface/vcos/pthreads -I${SYSROOT}/usr/include/interface/vmcs_host/linux
 CFLAGS = -g --sysroot=$(SYSROOT)
 LIBS = -L/opt/vc/lib -lopenmaxil -lbcm_host
 
