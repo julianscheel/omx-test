@@ -294,6 +294,25 @@ void disablePort(OMX_INDEXTYPE paramType) {
 	}
 }
 
+static OMX_ERRORTYPE SetDeinterlaceMode()
+{
+    OMX_CONFIG_IMAGEFILTERPARAMSTYPE config;
+    OMX_ERRORTYPE omx_error;
+
+    setHeader(&config, sizeof(OMX_CONFIG_IMAGEFILTERPARAMSTYPE));
+    config.nPortIndex = 191;
+    config.nNumParams = 1;
+    config.nParams[0] = 3;
+    config.eImageFilter = OMX_ImageFilterColourSwap;
+    omx_error = OMX_SetConfig(handle,
+            OMX_IndexConfigCommonImageFilterParameters, &config);
+
+    if (omx_error != OMX_ErrorNone)
+		fprintf(stderr, "Could not set ImageFilter Type.\n");
+
+    return omx_error;
+}
+
 int main(int argc, char** argv) {
 
 	OMX_PORT_PARAM_TYPE param;
@@ -469,6 +488,8 @@ int main(int argc, char** argv) {
 	printf("Transition to Idle\n");
 	/* Make sure we've reached Idle state */
 	waitFor(OMX_StateIdle);
+
+	SetDeinterlaceMode();
 
 	printf("Transition to Executing\n");
 	/* Now try to switch to Executing state */
