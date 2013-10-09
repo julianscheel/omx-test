@@ -26,6 +26,8 @@
 
 #define ALIGN(x, y) (((x) + ((y) - 1)) & ~((y) - 1))
 
+extern OMX_ERRORTYPE OMX_GetDebugInformation(OMX_STRING debugInfo, OMX_S32 *pLen);
+
 OMX_ERRORTYPE err;
 OMX_HANDLETYPE handle;
 OMX_VERSIONTYPE specVersion, compVersion;
@@ -36,6 +38,15 @@ static OMX_BOOL bEOS=OMX_FALSE;
 
 OMX_U32 nBufferSize;
 int nBuffers;
+
+void print_omx_debug_info() {
+#define OMX_DEBUG_INFO_LEN 4096
+    OMX_STRING debug_info[OMX_DEBUG_INFO_LEN];
+    debug_info[0] = 0;
+    int len = OMX_DEBUG_INFO_LEN;
+    OMX_GetDebugInformation(debug_info, &len);
+    printf(debug_info);
+}
 
 const char *ErrorToString(OMX_ERRORTYPE error)
 {
@@ -218,6 +229,10 @@ OMX_ERRORTYPE cFillBufferDone(
 
 	fprintf(stderr, "Hi there, I am in the %s callback.\n", __func__);
 
+    FILE* outfile = fopen("/tmp/output.yuv", "w");
+    fwrite(pBuffer->pBuffer, pBuffer->nFilledLen, 1, outfile);
+    fclose(outfile);
+
 	return OMX_ErrorNone;
 }
 
@@ -303,7 +318,7 @@ static OMX_ERRORTYPE SetDeinterlaceMode()
     config.nPortIndex = 191;
     config.nNumParams = 1;
     config.nParams[0] = 3;
-    config.eImageFilter = OMX_ImageFilterColourSwap;
+    config.eImageFilter = OMX_ImageFilterDeInterlaceAdvanced;
     omx_error = OMX_SetConfig(handle,
             OMX_IndexConfigCommonImageFilterParameters, &config);
 
@@ -416,7 +431,7 @@ int main(int argc, char** argv) {
 			sPortDef.format.image.nSliceHeight * 3 / 2;
 
 		/* Create minimum number of buffers for the port */
-		nBuffers = sPortDef.nBufferCountActual = sPortDef.nBufferCountMin;
+        nBuffers = sPortDef.nBufferCountActual = 3;
 		fprintf(stderr, "Number of bufers is %d\n", nBuffers);
 		err = OMX_SetParameter(handle, OMX_IndexParamPortDefinition, &sPortDef);
 		if(err != OMX_ErrorNone){
@@ -476,6 +491,7 @@ int main(int argc, char** argv) {
 		}
 
 		for (n = 0; n < nBuffers; n++) {
+            void* tmp_buffer = malloc(nBufferSize);
 			err = OMX_AllocateBuffer(handle, inBuffers[i] + n, startPortNumber + i, NULL,
 						 nBufferSize);
 			if (err != OMX_ErrorNone) {
@@ -497,6 +513,8 @@ int main(int argc, char** argv) {
 	if(err != OMX_ErrorNone){
 		exit(1);
 	}
+	waitFor(OMX_StateExecuting);
+
 
 	/* One buffer is the minimum for Broadcom component, so use that */
 	pEmptyBuffer = inBuffers[0][0];
@@ -508,15 +526,24 @@ int main(int argc, char** argv) {
 		int data_read = read(fd, pEmptyBuffer->pBuffer, nBufferSize);
 		pEmptyBuffer->nFilledLen = data_read;
 		pEmptyBuffer->nOffset = 0;
+        for(i = 1; i < nBuffers; ++i) {
+            memcpy(pEmptyBuffer->pBuffer, inBuffers[0][i]->pBuffer, data_read);
+            inBuffers[0][i]->nFilledLen = data_read;
+            inBuffers[0][i]->nOffset = 0;
+        }
+
 		filesize -= data_read;
 		if (filesize <= 0) {
 			fprintf(stderr, "In the %s no more input data available\n", __func__);
 			pEmptyBuffer->nFlags = OMX_BUFFERFLAG_EOS;
 			bEOS=OMX_TRUE;
 		}
-		pEmptyBuffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME;
-		fprintf(stderr, "Emptying again buffer %p %d bytes, %d to go\n", pEmptyBuffer, data_read, filesize);
-		err = OMX_EmptyThisBuffer(handle, pEmptyBuffer);
+        for(i = 0; i < nBuffers; ++i) {
+            pEmptyBuffer = inBuffers[0][i];
+            pEmptyBuffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME;
+            fprintf(stderr, "Emptying again buffer %p %d bytes, %d to go\n", pEmptyBuffer, data_read, filesize);
+            err = OMX_EmptyThisBuffer(handle, pEmptyBuffer);
+        }
 		waitForEmpty();
 		fprintf(stderr, "Waited for empty\n");
 		if (bEOS) {
@@ -525,5 +552,7 @@ int main(int argc, char** argv) {
 		}
 	}
 	fprintf(stderr, "Buffers emptied\n");
+    print_omx_debug_info();
 	exit(0);
 }
+
