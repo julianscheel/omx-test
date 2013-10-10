@@ -431,7 +431,7 @@ int main(int argc, char** argv) {
 			sPortDef.format.image.nSliceHeight * 3 / 2;
 
 		/* Create minimum number of buffers for the port */
-        nBuffers = sPortDef.nBufferCountActual = 3;
+        nBuffers = sPortDef.nBufferCountActual = 10;
 		fprintf(stderr, "Number of bufers is %d\n", nBuffers);
 		err = OMX_SetParameter(handle, OMX_IndexParamPortDefinition, &sPortDef);
 		if(err != OMX_ErrorNone){
@@ -519,18 +519,20 @@ int main(int argc, char** argv) {
 	/* One buffer is the minimum for Broadcom component, so use that */
 	pEmptyBuffer = inBuffers[0][0];
 	pFillBuffer = inBuffers[1][0];
-	err = OMX_FillThisBuffer(handle, pFillBuffer);
+	for (i = 0; i < 5; i++) {
+		err = OMX_FillThisBuffer(handle, inBuffers[1][i]);
+	}
 	emptyState = 1;
 	/* Fill and empty buffer */
 	for (;;) {
 		int data_read = read(fd, pEmptyBuffer->pBuffer, nBufferSize);
 		pEmptyBuffer->nFilledLen = data_read;
 		pEmptyBuffer->nOffset = 0;
-        for(i = 1; i < nBuffers; ++i) {
-            memcpy(pEmptyBuffer->pBuffer, inBuffers[0][i]->pBuffer, data_read);
-            inBuffers[0][i]->nFilledLen = data_read;
-            inBuffers[0][i]->nOffset = 0;
-        }
+		for(i = 1; i < nBuffers; ++i) {
+		    memcpy(pEmptyBuffer->pBuffer, inBuffers[0][i]->pBuffer, data_read);
+		    inBuffers[0][i]->nFilledLen = data_read;
+		    inBuffers[0][i]->nOffset = 0;
+		}
 
 		filesize -= data_read;
 		if (filesize <= 0) {
@@ -538,12 +540,12 @@ int main(int argc, char** argv) {
 			pEmptyBuffer->nFlags = OMX_BUFFERFLAG_EOS;
 			bEOS=OMX_TRUE;
 		}
-        for(i = 0; i < nBuffers; ++i) {
-            pEmptyBuffer = inBuffers[0][i];
-            pEmptyBuffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME;
-            fprintf(stderr, "Emptying again buffer %p %d bytes, %d to go\n", pEmptyBuffer, data_read, filesize);
-            err = OMX_EmptyThisBuffer(handle, pEmptyBuffer);
-        }
+		for(i = 0; i < nBuffers; ++i) {
+		    pEmptyBuffer = inBuffers[0][i];
+		    pEmptyBuffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME;
+		    fprintf(stderr, "Emptying again buffer %p %d bytes, %d to go\n", pEmptyBuffer, data_read, filesize);
+		    err = OMX_EmptyThisBuffer(handle, pEmptyBuffer);
+		}
 		waitForEmpty();
 		fprintf(stderr, "Waited for empty\n");
 		if (bEOS) {
